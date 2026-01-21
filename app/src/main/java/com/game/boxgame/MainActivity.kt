@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
@@ -106,6 +107,9 @@ fun TapGameScreen() {
     var score by remember { mutableStateOf(0) }
     var timeLeft by remember { mutableStateOf(30) }
     var gameOver by remember { mutableStateOf(false) }
+    var targetColor by remember { mutableStateOf(Color.Red) }
+    val animatedColor by animateColorAsState(targetColor)
+    var isRunning by remember { mutableStateOf(true) }
 
     val boxSize = 80.dp
     val density = LocalDensity.current
@@ -117,13 +121,18 @@ fun TapGameScreen() {
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
-    LaunchedEffect(Unit) {
-        while (timeLeft > 0) {
+    LaunchedEffect(isRunning) {
+        while (isRunning && timeLeft > 0) {
             delay(1000)
             timeLeft--
         }
-        gameOver = true
+
+        if (timeLeft == 0) {
+            gameOver = true
+            isRunning = false
+        }
     }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -143,14 +152,14 @@ fun TapGameScreen() {
                 modifier = Modifier
                     .offset { IntOffset(boxX.toInt(), boxY.toInt()) }
                     .size(boxSize)
-                    .background(Color.Red, RoundedCornerShape(14.dp))
+                    .background(animatedColor, RoundedCornerShape(14.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
                         score++
+                        targetColor = randomColor()
 
-                        // Safe random position
                         val maxX = screenWidthPx - with(density) { boxSize.toPx() }
                         val maxY = screenHeightPx - with(density) { boxSize.toPx() }
 
@@ -183,6 +192,7 @@ fun TapGameScreen() {
                     score = 0
                     timeLeft = 30
                     gameOver = false
+                    isRunning = true
 
                     boxX = Random.nextFloat() * (screenWidthPx - with(density) { boxSize.toPx() })
                     boxY = Random.nextFloat() * (screenHeightPx - with(density) { boxSize.toPx() })
@@ -193,4 +203,13 @@ fun TapGameScreen() {
         }
     }
 }
+fun randomColor(): Color {
+    return Color(
+        red = Random.nextFloat(),
+        green = Random.nextFloat(),
+        blue = Random.nextFloat(),
+        alpha = 1f
+    )
+}
+
 
