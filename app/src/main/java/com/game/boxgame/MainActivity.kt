@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,8 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,17 +107,22 @@ fun TapGameScreen() {
     var timeLeft by remember { mutableStateOf(30) }
     var gameOver by remember { mutableStateOf(false) }
 
-    var boxX by remember { mutableStateOf(100f) }
-    var boxY by remember { mutableStateOf(200f) }
+    val boxSize = 80.dp
+    val density = LocalDensity.current
 
-    // Timer
-    LaunchedEffect(timeLeft) {
-        if (timeLeft > 0) {
+    var boxX by remember { mutableStateOf(0f) }
+    var boxY by remember { mutableStateOf(0f) }
+
+    val configuration = LocalConfiguration.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
+    LaunchedEffect(Unit) {
+        while (timeLeft > 0) {
             delay(1000)
             timeLeft--
-        } else {
-            gameOver = true
         }
+        gameOver = true
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -127,38 +133,59 @@ fun TapGameScreen() {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Score: $score", fontSize = 20.sp)
+            Text("Score: $score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text("Time: $timeLeft", fontSize = 18.sp)
         }
 
         if (!gameOver) {
+
             Box(
                 modifier = Modifier
                     .offset { IntOffset(boxX.toInt(), boxY.toInt()) }
-                    .size(80.dp)
-                    .background(Color.Red, RoundedCornerShape(12.dp))
-                    .clickable {
+                    .size(boxSize)
+                    .background(Color.Red, RoundedCornerShape(14.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
                         score++
 
-                        // Random new position
-                        boxX = Random.nextInt(50, 800).toFloat()
-                        boxY = Random.nextInt(200, 1400).toFloat()
+                        // Safe random position
+                        val maxX = screenWidthPx - with(density) { boxSize.toPx() }
+                        val maxY = screenHeightPx - with(density) { boxSize.toPx() }
+
+                        boxX = Random.nextFloat() * maxX
+                        boxY = Random.nextFloat() * maxY
                     }
             )
+
         } else {
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Game Over", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                Text("Final Score: $score", fontSize = 20.sp)
+                Text(
+                    "Game Over",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    "Final Score: $score",
+                    fontSize = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(onClick = {
                     score = 0
                     timeLeft = 30
                     gameOver = false
+
+                    boxX = Random.nextFloat() * (screenWidthPx - with(density) { boxSize.toPx() })
+                    boxY = Random.nextFloat() * (screenHeightPx - with(density) { boxSize.toPx() })
                 }) {
                     Text("Play Again")
                 }
