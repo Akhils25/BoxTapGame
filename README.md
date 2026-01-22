@@ -1,5 +1,5 @@
+<img width="1024" height="1024" alt="ic_box_game" src="https://github.com/user-attachments/assets/bced141e-e1e9-4275-963d-cbc9a7b62b47" />
 # 🎮 BoxTapGame
-
 BoxTapGame is a simple and fun Android game built using **Jetpack Compose**.  
 The goal is to tap the animated box as quickly and accurately as possible to score points.
 
