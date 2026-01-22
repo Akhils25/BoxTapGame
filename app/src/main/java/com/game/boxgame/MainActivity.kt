@@ -1,5 +1,6 @@
 package com.game.boxgame
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -22,10 +24,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,12 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.game.boxgame.ui.theme.BoxGameTheme
+import com.game.boxgame.utils.GameSoundManager
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -101,11 +109,17 @@ fun SplashScreen() {
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun TapGameScreen() {
 
-    var score by remember { mutableStateOf(0) }
-    var timeLeft by remember { mutableStateOf(30) }
+    val context = LocalContext.current
+    val soundManager = remember { GameSoundManager(context) }
+
+    var soundEnabled by remember { mutableStateOf(true) }
+
+    var score by remember { mutableIntStateOf(0) }
+    var timeLeft by remember { mutableIntStateOf(30) }
     var gameOver by remember { mutableStateOf(false) }
     var targetColor by remember { mutableStateOf(Color.Red) }
     val animatedColor by animateColorAsState(targetColor)
@@ -114,12 +128,18 @@ fun TapGameScreen() {
     val boxSize = 80.dp
     val density = LocalDensity.current
 
-    var boxX by remember { mutableStateOf(0f) }
-    var boxY by remember { mutableStateOf(0f) }
+    var boxX by remember { mutableFloatStateOf(0f) }
+    var boxY by remember { mutableFloatStateOf(0f) }
 
     val configuration = LocalConfiguration.current
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
+    LaunchedEffect(isRunning) {
+        if (isRunning && timeLeft == 30) {
+            soundManager.playIntro(soundEnabled)
+        }
+    }
 
     LaunchedEffect(isRunning) {
         while (isRunning && timeLeft > 0) {
@@ -130,7 +150,11 @@ fun TapGameScreen() {
         if (timeLeft == 0) {
             gameOver = true
             isRunning = false
+            soundManager.playGameOver(soundEnabled)
         }
+    }
+    DisposableEffect(Unit) {
+        onDispose { soundManager.release() }
     }
 
 
@@ -144,6 +168,14 @@ fun TapGameScreen() {
         ) {
             Text("Score: $score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text("Time: $timeLeft", fontSize = 18.sp)
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Sound")
+                Switch(
+                    checked = soundEnabled,
+                    onCheckedChange = { soundEnabled = it }
+                )
+            }
         }
 
         if (!gameOver) {
@@ -159,6 +191,7 @@ fun TapGameScreen() {
                     ) {
                         score++
                         targetColor = randomColor()
+                        soundManager.playTap(soundEnabled)
 
                         val maxX = screenWidthPx - with(density) { boxSize.toPx() }
                         val maxY = screenHeightPx - with(density) { boxSize.toPx() }
@@ -203,6 +236,7 @@ fun TapGameScreen() {
         }
     }
 }
+
 fun randomColor(): Color {
     return Color(
         red = Random.nextFloat(),
